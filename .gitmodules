@@ -1,0 +1,3 @@
+[submodule "SOSD"]
+	path = SOSD
+	url = git@github.com:learnedsystems/SOSD.git
