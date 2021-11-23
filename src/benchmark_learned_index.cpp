@@ -38,15 +38,7 @@ int main(int argc, char** argv) {
     std::cout << "Run `python generate_workflow` to generate workloads" << std::endl;
     return 0;
   }
-//  std::vector<V> contents((std::istreambuf_iterator<char>(is_workload)),
-//                           std::istreambuf_iterator<char>());
-//
-//  for(auto i: contents) {
-//    int value = i;
-//    std::cout << "data: " << value << std::endl;
-//  }
-//  std::cout << "file size: " << contents.size() << std::endl;
-
+    
   is_workload.read(reinterpret_cast<char*>(workload),
           std::streamsize(num_records * sizeof(V)));
   is_workload.close();

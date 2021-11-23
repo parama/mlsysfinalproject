@@ -12,9 +12,7 @@ int main(int, char**) {
 
   // Build a learned index with 10 second-level models.
   LearnedIndex<double, int> learned_index(data);
-  std::cout << "PRINT FINISHED INIT" << std::endl;
   learned_index.build(10);
-  std::cout << "PRINT FINISHED BUILD" << std::endl;
     
   // For each key in the data, look up its value using the learned index.
   for (const auto& record : data) {
@@ -40,5 +38,4 @@ int main(int, char**) {
                 << ", which does not exist" << std::endl;
     }
   }
-  std::cout << "PRINT FINISHED SANITY CHECK" << std::endl;
 }
