@@ -36,8 +36,8 @@ def main(cmd_args):
     workload = np.random.choice(samples, p=weights, size=workload_size, replace=True)
 
     # save workloads
-    with open(output_path, "w") as fout:
-        fout.write("\n".join([str(key) for key in workload]))
+    output_filename = os.path.join(output_path, os.path.basename(dataset_path) + "_workload{}k_alpha{}".format(int(workload_size/1000), alpha))
+    workload.astype('int64').tofile(output_filename)
 
     # show a preview of generated workloads
     if visualize:
@@ -51,7 +51,7 @@ def main(cmd_args):
 if __name__ == "__main__":
 
     # example usage:
-    # python3 generate_workflow.py -d SOSD/data/wiki_ts_200M_uint64 -t unit64 -s 100000 -o workloads/wiki_ts_200M_unit64_alpha2_100k.txt -a 2 -v
+    # python3 generate_workflow.py -d SOSD/data/wiki_ts_200M_uint64 -t unit64 -s 100000 -o workloads -a 2
 
     parser = argparse.ArgumentParser()
     parser.add_argument('-d', '--dataset', type=str, help="path to input data")
