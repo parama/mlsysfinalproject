@@ -26,6 +26,8 @@ to compile the executables to the `build` directory.
 
 Run `./build/benchmark_learned_index` to benchmark a lookup workloads.
 
+---
+
 ### Running SOSD
 
 To run SOSD on macOS, we can use the version released under the tag `mlforsys19`.
@@ -48,13 +50,12 @@ After running it locally, we got the following benchmark table
 | uden64        |      72.1 |       664 |       147 |       n/a |       403 |       575 |       923 |       223 |      77.8 |
 | uspr64        |       243 |      1374 |       345 |       n/a |       334 |       622 |      1323 |       506 |       628 |
 | wiki64        |       774 |      1189 |       n/a |       n/a |       482 |       723 |       990 |      2089 |      9819 |
-| ------------- | ---------:| ---------:| ---------:| ---------:| ---------:| ---------:| ---------:| ---------:| ---------:|
-| avg           |       441 |      1004 |      2081 |       495 |       481 |       625 |      1096 |      1426 |     13041 |
+| **avg**           |       441 |      1004 |      2081 |       495 |       481 |       625 |      1096 |      1426 |     13041 |
 
 
 #### Steps to Reproduce
 
-**Setup**
+**1. Setup**
 ```bash
 git clone --depth 1 --branch mlforsys19 https://github.com/learnedsystems/SOSD.git
 
@@ -62,7 +63,7 @@ cd SOSD
 . ./scripts/setup_anywhere.sh
 ```
 
-**Runs**
+**2. Runs**
 * `scripts/download.sh` downloads and stores required data from the Internet
 * `scripts/build_rmis.sh` compiles and builds the RMIs for each dataset
 * `scripts/prepare.sh` constructs query workloads and compiles the benchmark
