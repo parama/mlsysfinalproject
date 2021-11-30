@@ -1,0 +1,5 @@
+model, workload time, build time, proof of work
+binary search,9.67929,0,115407925474681
+linear model,18.7386,58.6932,115298679610555
+weighted linear model,23.2666,73.0872,115298679610555
+lookup table linear model,24.8867,79.3057,115298679610555

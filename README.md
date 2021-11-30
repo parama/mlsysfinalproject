@@ -13,6 +13,18 @@ cd SOSD
 ./scripts/download.sh
 ```
 
+### Data Folder Structure
+
+Example data layout 
+```
+project/
+├── scr/
+└── data/
+    ├── wiki_ts_200M_uint64
+    └── workloads/
+	    └── wiki_ts_200M_uint64_workload100k_alpha1.1
+```
+
 ### Build Learned Index
 
 To compile the code, run 
@@ -24,7 +36,7 @@ to compile the executables to the `build` directory.
 
 ### Benchmark
 
-Run `./build/benchmark_learned_index` to benchmark a lookup workloads.
+Run `./benchmark` to benchmark a lookup workloads.
 
 ---
 

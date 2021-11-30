@@ -19,3 +19,5 @@ add_executable(benchmark_learned_index src/benchmark_learned_index.cpp)
 add_executable(benchmark_binary_search src/benchmark_binary_search.cpp)
 add_executable(benchmark_weighted_learned_index src/benchmark_weighted_learned_index.cpp)
 add_executable(benchmark_look_up_table_learned_index src/benchmark_look_up_table_learned_index.cpp)
+
+add_executable(benchmark src/benchmark.cpp)
