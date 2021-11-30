@@ -18,7 +18,7 @@ cd SOSD
 Example data layout 
 ```
 project/
-├── scr/
+├── src/
 └── data/
     ├── wiki_ts_200M_uint64
     └── workloads/
