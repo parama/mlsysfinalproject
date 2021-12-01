@@ -18,6 +18,10 @@ function download_file() {
    CHECKSUM=$2;
    URL=$3;
 
+   echo "downloading data ..."
+   mkdir -p data
+   cd data
+   
    # Check if file already exists
    if [ -f ${FILE} ]; then
        echo "$FILE already exists, skipping download."
@@ -32,8 +36,12 @@ function download_file() {
            echo ${FILE} "checksum ok"
        fi
    fi
+   
+   cd ..
+   echo "done"
 }
 
+# Format: download_file <file_name> <md5_checksum> <url>
 download_file wiki_ts_200M_uint64 4f1402b1c476d67f77d2da4955432f7d https://dataverse.harvard.edu/api/access/datafile/:persistentId?persistentId=doi:10.7910/DVN/JGVF9A/SVN8PI
+download_file osm_cellids_800M_uint64 70670bf41196b9591e07d0128a281b9a https://www.dropbox.com/s/j1d4ufn4fyb4po2/osm_cellids_800M_uint64.zst?dl=1
 
-download_file keys.bin 415c17a62d6e8f5238d4cf8f5854aae7 https://www.dropbox.com/s/stfjg0lw1lg7qrb/longitudes-50M-shuffled.data?dl=1

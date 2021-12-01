@@ -26,27 +26,30 @@ std::tuple<double, double, V> learned_index(std::vector<std::pair<K, V>> data, i
     
     // Run workload using learned index
     std::cout << "Running query workload..." << std::endl;
-    auto workload_start_time = std::chrono::high_resolution_clock::now();
+    double time = 0;
     V sum = 0;
     for (const auto& record : data) {
+        auto workload_start_time = std::chrono::high_resolution_clock::now();
         K key = record.first;
+        const V work = record.second;
         const V* payload = index.get_value(key);
+        double workload_time =
+            std::chrono::duration_cast<std::chrono::nanoseconds>(
+                std::chrono::high_resolution_clock::now() - workload_start_time)
+                .count();
+        
         if (payload) {
             sum += *payload;
+            time += workload_time * (double) work;
         }
     }
     
-    double workload_time =
-        std::chrono::duration_cast<std::chrono::nanoseconds>(
-            std::chrono::high_resolution_clock::now() - workload_start_time)
-            .count();
-    
-    std::cout << "Workload complete. Learned index build time: "
+    std::cout << "Workload complete. Lookup table learned index build time: "
               << build_time / 1e9
-              << " seconds, workload time: " << workload_time / 1e9
+              << " seconds, workload time: " << time / 1e9
               << " seconds, proof of work: " << sum << std::endl;
     
-    return std::make_tuple(workload_time, build_time, sum);
+    return std::make_tuple(time, build_time, sum);
 }
 
 std::tuple<double, double, V> weighted_learned_index(std::vector<std::pair<K, V>> data, int num_second_level_models) {
@@ -64,27 +67,30 @@ std::tuple<double, double, V> weighted_learned_index(std::vector<std::pair<K, V>
     
     // Run workload using learned index
     std::cout << "Running query workload..." << std::endl;
-    auto workload_start_time = std::chrono::high_resolution_clock::now();
+    double time = 0;
     V sum = 0;
     for (const auto& record : data) {
+        auto workload_start_time = std::chrono::high_resolution_clock::now();
         K key = record.first;
+        const V work = record.second;
         const V* payload = index.get_value(key);
+        double workload_time =
+            std::chrono::duration_cast<std::chrono::nanoseconds>(
+                std::chrono::high_resolution_clock::now() - workload_start_time)
+                .count();
+        
         if (payload) {
             sum += *payload;
+            time += workload_time * (double) work;
         }
     }
     
-    double workload_time =
-        std::chrono::duration_cast<std::chrono::nanoseconds>(
-            std::chrono::high_resolution_clock::now() - workload_start_time)
-            .count();
-    
-    std::cout << "Workload complete. Weighted learned index build time: "
+    std::cout << "Workload complete. Lookup table learned index build time: "
               << build_time / 1e9
-              << " seconds, workload time: " << workload_time / 1e9
+              << " seconds, workload time: " << time / 1e9
               << " seconds, proof of work: " << sum << std::endl;
     
-    return std::make_tuple(workload_time, build_time, sum);
+    return std::make_tuple(time, build_time, sum);
 }
 
 std::tuple<double, double, V> lookup_table_learned_index(std::vector<std::pair<K, V>> data, int num_second_level_models, int tableSize) {
@@ -103,27 +109,30 @@ std::tuple<double, double, V> lookup_table_learned_index(std::vector<std::pair<K
 
     // Run workload using learned index
     std::cout << "Running query workload..." << std::endl;
-    auto workload_start_time = std::chrono::high_resolution_clock::now();
     V sum = 0;
+    double time = 0;
     for (const auto& record : data) {
-      K key = record.first;
-      const V* payload = index.get_value(key);
-      if (payload) {
-        sum += *payload;
-      }
+        auto workload_start_time = std::chrono::high_resolution_clock::now();
+        K key = record.first;
+        const V work = record.second;
+        const V* payload = index.get_value(key);
+        double workload_time =
+            std::chrono::duration_cast<std::chrono::nanoseconds>(
+                std::chrono::high_resolution_clock::now() - workload_start_time)
+                .count();
+        
+        if (payload) {
+            sum += *payload;
+            time += workload_time * (double) work;
+        }
     }
-    double workload_time =
-        std::chrono::duration_cast<std::chrono::nanoseconds>(
-            std::chrono::high_resolution_clock::now() - workload_start_time)
-            .count();
-
     
     std::cout << "Workload complete. Lookup table learned index build time: "
               << build_time / 1e9
-              << " seconds, workload time: " << workload_time / 1e9
+              << " seconds, workload time: " << time / 1e9
               << " seconds, proof of work: " << sum << std::endl;
     
-    return std::make_tuple(workload_time, build_time, sum);
+    return std::make_tuple(time, build_time, sum);
 }
 
 std::tuple<double, double, V> binary_search(std::vector<std::pair<K, V>> data) {
@@ -140,7 +149,6 @@ std::tuple<double, double, V> binary_search(std::vector<std::pair<K, V>> data) {
           [](auto const& pair, K key) { return pair.first < key; });
       sum += it->second;
     }
-
     double workload_time =
         std::chrono::duration_cast<std::chrono::nanoseconds>(
             std::chrono::high_resolution_clock::now() - workload_start_time)
@@ -189,7 +197,7 @@ int benchmark_dataset(const std::string& keys_file_path, const std::string& work
   delete[] keys;
   delete[] workload;
 
-  auto [bs_workload_time, bs_build_time, bs_sum] = binary_search(data);
+//  auto [bs_workload_time, bs_build_time, bs_sum] = binary_search(data);
   auto [l_workload_time, l_build_time, l_sum] = learned_index(data, num_second_level_models);
   auto [wl_workload_time, wl_build_time, wl_sum] = weighted_learned_index(data, num_second_level_models);
   auto [t_workload_time, t_build_time, t_sum] = lookup_table_learned_index(data, num_second_level_models, table_size);
@@ -198,7 +206,7 @@ int benchmark_dataset(const std::string& keys_file_path, const std::string& work
   std::ofstream results_file;
   results_file.open("results/benchmark_result.csv");
   results_file << "model, workload time, build time, proof of work\n"
-    << "binary search," << bs_workload_time / 1e9 << "," << bs_build_time / 1e9 << "," << bs_sum << "\n"
+//    << "binary search," << bs_workload_time / 1e9 << "," << bs_build_time / 1e9 << "," << bs_sum << "\n"
     << "linear model," << l_workload_time / 1e9 << "," << l_build_time / 1e9 << "," << l_sum << "\n"
     << "weighted linear model," << wl_workload_time / 1e9 << "," << wl_build_time / 1e9 << "," << wl_sum << "\n"
     << "lookup table linear model," << t_workload_time / 1e9 << "," << t_build_time / 1e9 << "," << t_sum << "\n";
