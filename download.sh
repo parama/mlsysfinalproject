@@ -1,5 +1,5 @@
-#!/usr/bin/env bash
 
+# Calculate md5 checksum of FILE and stores it in MD5_RESULT
 function get_checksum() {
    FILE=$1
 
@@ -12,36 +12,56 @@ function get_checksum() {
    fi
 }
 
-
+# Function to download one data file
 function download_file() {
    FILE=$1;
    CHECKSUM=$2;
    URL=$3;
 
+   # Check if file already exists
+   if [ -f ${FILE} ]; then
+      # Exists -> check the checksum
+      get_checksum ${FILE}
+      if [ "${MD5_RESULT}" != "${CHECKSUM}" ]; then
+         wget -O - ${URL} | xz -d > ${FILE}
+      fi
+   else
+      # Does not exists -> download
+      wget -O - ${URL} | xz -d > ${FILE}
+   fi
+
+   # Validate (at this point the file should really exist)
+   get_checksum ${FILE}
+   if [ "${MD5_RESULT}" != "${CHECKSUM}" ]; then
+      echo "error checksum does not match: run download again"
+      exit -1
+   else
+      echo ${FILE} "checksum ok"
+   fi
+}
+
+# Main script code
+function main() {
    echo "downloading data ..."
    mkdir -p data
    cd data
-   
-   # Check if file already exists
-   if [ -f ${FILE} ]; then
-       echo "$FILE already exists, skipping download."
-   else
-      # Does not exists -> download
-       wget -O - ${URL} > ${FILE}
-       get_checksum ${FILE}
-       if [ "${MD5_RESULT}" != "${CHECKSUM}" ]; then
-           echo "error checksum does not match: run download again"
-           exit -1
-       else
-           echo ${FILE} "checksum ok"
-       fi
-   fi
+
+   # Format: download_file <file_name> <md5_checksum> <url>
+   download_file wiki_ts_200M_uint64 4f1402b1c476d67f77d2da4955432f7d https://dataverse.harvard.edu/api/access/datafile/:persistentId?persistentId=doi:10.7910/DVN/JGVF9A/ULSWQQ 
+   download_file osm_cellids_200M_uint64 01666e42b2d64a55411bdc280ac9d2a3  https://dataverse.harvard.edu/api/access/datafile/:persistentId?persistentId=doi:10.7910/DVN/JGVF9A/CTBUKT 
+
+"""
+   download_file books_200M_uint32 c4a848fdc56130abdd167d7e6b813843 https://dataverse.harvard.edu/api/access/datafile/:persistentId?persistentId=doi:10.7910/DVN/JGVF9A/MZZUP2 
+   download_file books_200M_uint64 aa88040624be2f508f1ab6f5532ace88 https://dataverse.harvard.edu/api/access/datafile/:persistentId?persistentId=doi:10.7910/DVN/JGVF9A/PDOUMU
+
+   download_file fb_200M_uint32 881eacb62c38eb8c2fdd4d59706b70a7 https://dataverse.harvard.edu/api/access/datafile/:persistentId?persistentId=doi:10.7910/DVN/JGVF9A/GXH3ZC 
+   download_file fb_200M_uint64 407a23758b72e3c1ee3f6384d98ce604 https://dataverse.harvard.edu/api/access/datafile/:persistentId?persistentId=doi:10.7910/DVN/JGVF9A/Y54SI9
+"""
    
    cd ..
    echo "done"
 }
 
-# Format: download_file <file_name> <md5_checksum> <url>
-download_file wiki_ts_200M_uint64 4f1402b1c476d67f77d2da4955432f7d https://dataverse.harvard.edu/api/access/datafile/:persistentId?persistentId=doi:10.7910/DVN/JGVF9A/SVN8PI
-download_file osm_cellids_800M_uint64 70670bf41196b9591e07d0128a281b9a https://www.dropbox.com/s/j1d4ufn4fyb4po2/osm_cellids_800M_uint64.zst?dl=1
+# Run
+main
 

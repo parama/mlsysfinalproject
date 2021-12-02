@@ -34,7 +34,7 @@ class WLinearModel {
     double tot_workload = std::accumulate(workloads.begin(), workloads.end(), 0.0);
     std::vector<double> weights;
     for (int i = 0; i < n; i++) {
-        weights.push_back(workloads[i] / tot_workload);
+        weights.push_back(workloads[i]);
     }
     
     // keys to search for in the index (x)

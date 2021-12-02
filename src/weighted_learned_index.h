@@ -12,7 +12,7 @@ class WLearnedIndex {
                 "Learned index key type must be numeric.");
 
  public:
-  typedef std::pair<K, V> record;
+  typedef std::tuple<K, V, K> record;
 
   WLearnedIndex(std::vector<record> data) : data_(data) {
     std::sort(data_.begin(), data_.end());
@@ -30,11 +30,12 @@ class WLearnedIndex {
     // keys, but for simplicity in this lab we will make some redundant copies.
     std::vector<K> keys;
     std::transform(std::begin(data_), std::end(data_), std::back_inserter(keys),
-                   [](auto const& pair) { return pair.first; });
+                   [](auto const& tuple) { return std::get<0>(tuple); });
       
     std::vector<V> workload;
     std::transform(std::begin(data_), std::end(data_), std::back_inserter(workload),
-                   [](auto const& pair) { return pair.second; });
+                   [](auto const& tuple) { return std::get<2>(tuple); });
+      
     // Build a vector of positions (i.e., indexes) for each key.
     // For the root node over n records, these are simply the integers 0 through
     // n-1.
@@ -140,7 +141,7 @@ class WLearnedIndex {
     if (pos == -1) {
         return nullptr;
     }
-    return &data_[pos].second;
+    return &std::get<1>(data_[pos]);
   }
 
  private:
@@ -151,9 +152,9 @@ class WLearnedIndex {
   int last_mile_search(K key, int start_pos, int end_pos) const {
     int pos = std::lower_bound(
                   data_.begin() + start_pos, data_.begin() + end_pos, key,
-                  [](auto const& pair, K key) { return pair.first < key; }) -
+                  [](auto const& tuple, K key) { return std::get<0>(tuple) < key; }) -
               data_.begin();
-    if (pos > static_cast<int>(data_.size()) || data_[pos].first != key) {
+    if (pos > static_cast<int>(data_.size()) || std::get<0>(data_[pos]) != key) {
       return -1;
     } else {
       return pos;

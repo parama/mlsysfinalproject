@@ -14,10 +14,10 @@ int main(int argc, char** argv) {
     num_second_level_models = atoi(argv[1]);
   }
 
-  std::string keys_file_path = "wiki_ts_200M_uint64";
-  std::string workload_file_path = "wiki_ts_200M_uint64_workload";
+  std::string keys_file_path = "SOSD/data/wiki_ts_200M_uint64";
+  std::string weights_file_path = "data/weights/wiki_ts_200M_uint64_workload100k_alpha1.1";
   int num_records = 200000000;
-    
+        
   // Read keys from file. Keys are in random order (not sorted).
   auto keys = new K[num_records];
   std::ifstream is(keys_file_path.c_str(), std::ios::binary | std::ios::in);
@@ -29,26 +29,28 @@ int main(int argc, char** argv) {
           std::streamsize(num_records * sizeof(K)));
   is.close();
 
-  // Read workload
-  auto workload = new V[num_records];
-  std::ifstream is_workload(workload_file_path.c_str(), std::ios::binary | std::ios::in);
-  if (!is_workload.is_open()) {
-    std::cout << "Run `python generate_workflow` to generate workloads" << std::endl;
+  // Read weights generated from workload
+  auto weights = new K[num_records];
+  std::ifstream is_weight(weights_file_path.c_str(), std::ios::binary | std::ios::in);
+  if (!is_weight.is_open()) {
+    std::cout << "Run `python generate_workflow` then `convert_workload_to_weights` to generate weights" << std::endl;
     return 0;
   }
+        
+  is_weight.read(reinterpret_cast<char*>(weights),
+          std::streamsize(num_records * sizeof(K)));
+  is_weight.close();
     
-  is_workload.read(reinterpret_cast<char*>(workload),
-          std::streamsize(num_records * sizeof(V)));
-  is_workload.close();
-
   // Combine loaded keys with randomly generated values
-  std::vector<std::pair<K, V>> data(num_records);
+  std::vector<std::tuple<K, V, K>> data(num_records);
+  std::mt19937_64 gen_payload(std::random_device{}());
   for (int i = 0; i < num_records; i++) {
-    data[i].first = keys[i];
-    data[i].second = static_cast<V>(workload[i]);
+    std::get<0>(data[i]) = keys[i];
+    std::get<1>(data[i]) = static_cast<V>(gen_payload());
+    std::get<2>(data[i]) = weights[i];
   }
   delete[] keys;
-  delete[] workload;
+  delete[] weights;
 
   // Build index index
   std::cout << "Building learned index with " << num_second_level_models
@@ -66,7 +68,7 @@ int main(int argc, char** argv) {
   auto workload_start_time = std::chrono::high_resolution_clock::now();
   V sum = 0;
   for (const auto& record : data) {
-    K key = record.first;
+    K key = std::get<0>(record);
     const V* payload = index.get_value(key);
     if (payload) {
       sum += *payload;

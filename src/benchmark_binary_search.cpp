@@ -7,8 +7,7 @@
 #define V int64_t
 
 int main(int, char**) {
-  std::string keys_file_path = "wiki_ts_200M_uint64";
-  std::string workload_file_path = "wiki_ts_200M_uint64_workload";
+  std::string keys_file_path = "data/wiki_ts_200M_uint64";
   int num_records = 200000000;
 
   // Read keys from file. Keys are in random order (not sorted).
@@ -21,25 +20,13 @@ int main(int, char**) {
   is.read(reinterpret_cast<char*>(keys.data()),
           std::streamsize(num_records * sizeof(K)));
   is.close();
-    
-  // Read workload
-  auto workload = new V[num_records];
-  std::ifstream is_workload(workload_file_path.c_str(), std::ios::binary | std::ios::in);
-  if (!is_workload.is_open()) {
-    std::cout << "Run `python generate_workflow` to generate workloads" << std::endl;
-    return 0;
-  }
-      
-  is_workload.read(reinterpret_cast<char*>(workload),
-                   std::streamsize(num_records * sizeof(V)));
-  is_workload.close();
-    
+
   // Combine loaded keys with randomly generated values
   std::vector<std::pair<K, V>> data(num_records);
   std::mt19937_64 gen_payload(std::random_device{}());
   for (int i = 0; i < num_records; i++) {
     data[i].first = keys[i];
-    data[i].second = static_cast<V>(workload[i]);
+    data[i].second = static_cast<V>(gen_payload());
   }
 
   // Sort data

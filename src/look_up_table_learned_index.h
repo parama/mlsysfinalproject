@@ -17,12 +17,12 @@ class LookUpTableLearnedIndex {
  public:
   typedef std::pair<K, V> record;
 
-  LookUpTableLearnedIndex(std::vector<record> data) : data_(data) {
+  LookUpTableLearnedIndex(std::vector<record> data, std::vector<K> workload) : data_(data), workload_(workload) {
     std::sort(data_.begin(), data_.end());
   }
 
   // borrowed from https://stackoverflow.com/questions/1577475/c-sorting-and-keeping-track-of-indexes
-  std::vector<int> sort_indexes(std::vector<V> &v) {
+  std::vector<int> sort_indexes(std::vector<K> &v) {
 
     // initialize original index locations
     std::vector<int> idx(v.size());
@@ -52,16 +52,12 @@ class LookUpTableLearnedIndex {
     std::transform(std::begin(data_), std::end(data_), std::back_inserter(keys),
                    [](auto const& pair) { return pair.first; });
       
-    std::vector<V> workload;
-    std::transform(std::begin(data_), std::end(data_), std::back_inserter(workload),
-                   [](auto const& pair) { return pair.second; });
-    
     // Build a vector of positions (i.e., indexes) for each key.
     std::vector<int> positions(keys.size());
     std::iota(std::begin(positions), std::end(positions), 0);
 
     // Create a look-up table for the top most frequent keys
-    std::vector<int> sorted_idx = sort_indexes(workload);
+    std::vector<int> sorted_idx = sort_indexes(workload_);
     int idx_size = sorted_idx.size();
     std::unordered_set<int> idx_to_save;
     if (tableSize >= idx_size) {
@@ -216,6 +212,7 @@ class LookUpTableLearnedIndex {
 
   std::unordered_map<K, int>  look_up_table_;
   std::vector<record> data_;
+  std::vector<K> workload_;
   LinearModel<K> root_model_;
   std::vector<LinearModel<K>> second_level_models_;
   // The maximum prediction error for each second-level model.

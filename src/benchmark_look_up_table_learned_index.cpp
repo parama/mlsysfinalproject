@@ -15,8 +15,9 @@ int main(int argc, char** argv) {
   }
 
   std::string keys_file_path = "SOSD/data/wiki_ts_200M_uint64";
-  std::string workload_file_path = "workloads/wiki_ts_200M_uint64_workload100k_alpha1.1";
+  std::string workload_file_path = "data/workloads/wiki_ts_200M_uint64_workload100k_alpha1.1";
   int num_records = 200000000;
+  int workload_size = 100000;
   int tableSize = 5;
     
   // Read keys from file. Keys are in random order (not sorted).
@@ -30,31 +31,36 @@ int main(int argc, char** argv) {
           std::streamsize(num_records * sizeof(K)));
   is.close();
 
+  // Combine loaded keys with randomly generated values
+  std::vector<std::pair<K, V>> data(num_records);
+  std::mt19937_64 gen_payload(std::random_device{}());
+  for (int i = 0; i < num_records; i++) {
+    data[i].first = keys[i];
+    data[i].second = static_cast<V>(gen_payload());
+  }
+  delete[] keys;
+    
   // Read workload
-  auto workload = new V[num_records];
+  auto workload_data = new K[workload_size];
   std::ifstream is_workload(workload_file_path.c_str(), std::ios::binary | std::ios::in);
   if (!is_workload.is_open()) {
     std::cout << "Run `python generate_workflow` to generate workloads" << std::endl;
     return 0;
   }
     
-  is_workload.read(reinterpret_cast<char*>(workload),
-          std::streamsize(num_records * sizeof(V)));
+  is_workload.read(reinterpret_cast<char*>(workload_data),
+          std::streamsize(workload_size * sizeof(K)));
   is_workload.close();
 
-  // Combine loaded keys with randomly generated values
-  std::vector<std::pair<K, V>> data(num_records);
-  for (int i = 0; i < num_records; i++) {
-    data[i].first = keys[i];
-    data[i].second = static_cast<V>(workload[i]);
+  std::vector<K> workload(workload_size);
+  for (int i = 0; i < workload_size; i++) {
+    workload[i] = workload_data[i];
   }
-  delete[] keys;
-  delete[] workload;
-
+    
   // Build index index
   std::cout << "Building learned index with " << num_second_level_models
             << " second level models..." << std::endl;
-  LookUpTableLearnedIndex<K, V> index(data);
+  LookUpTableLearnedIndex<K, V> index(data, workload);
   auto build_start_time = std::chrono::high_resolution_clock::now();
   index.build(num_second_level_models, tableSize);
   double build_time =
