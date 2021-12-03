@@ -22,7 +22,7 @@ class LookUpTableLearnedIndex {
   }
 
   // borrowed from https://stackoverflow.com/questions/1577475/c-sorting-and-keeping-track-of-indexes
-  std::vector<int> sort_indexes(std::vector<K> &v) {
+  std::vector<int> sort_indexes(std::vector<int> &v) {
 
     // initialize original index locations
     std::vector<int> idx(v.size());
@@ -56,15 +56,32 @@ class LookUpTableLearnedIndex {
     std::vector<int> positions(keys.size());
     std::iota(std::begin(positions), std::end(positions), 0);
 
+    // compute weights for each key in the set
+    std::unordered_map<K, int> key_to_position;
+    int key_size = keys.size();
+    int workload_size = workload_.size();
+    for (int i = 0; i < key_size; i++) {
+      if (key_to_position.find(keys[i]) == key_to_position.end()) {
+        key_to_position[keys[i]] = i;
+      }
+    }
+    std::vector<int> weights;
+    for (int i = 0; i < key_size; i++) {
+      weights.push_back(0);
+    }
+    for (int i = 0; i < workload_size; i ++) {
+      weights[key_to_position[workload_[i]]] = weights[key_to_position[workload_[i]]] + 1;      
+    }
+
     // Create a look-up table for the top most frequent keys
-    std::vector<int> sorted_idx = sort_indexes(workload_);
+    std::vector<int> sorted_idx = sort_indexes(weights);
     int idx_size = sorted_idx.size();
     std::unordered_set<int> idx_to_save;
     if (tableSize >= idx_size) {
       tableSize = idx_size;
     }
     for (int i = 0; i < tableSize; i++) {
-      idx_to_save.insert(idx_size - 1 - i);
+      idx_to_save.insert(keys[idx_size - 1 - i]);
     }
 
     std::vector<K> keys_to_train;

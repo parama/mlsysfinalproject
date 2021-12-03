@@ -8,17 +8,34 @@
 #define K double
 #define V int64_t
 
+std::vector<K> read_workload(std::string workload_path, int wl_size) {
+  auto workload_data = new K[wl_size];
+  std::ifstream is_workload(workload_path.c_str(), std::ios::binary | std::ios::in);
+    
+  is_workload.read(reinterpret_cast<char*>(workload_data),
+          std::streamsize(wl_size * sizeof(K)));
+  is_workload.close();
+
+  std::vector<K> ret_workload(wl_size);
+  for (int i = 0; i < wl_size; i++) {
+    ret_workload[i] = workload_data[i];
+  }
+  return ret_workload;
+}
+
 int main(int argc, char** argv) {
-  int num_second_level_models = 100;
-  if (argc > 1) {
-    num_second_level_models = atoi(argv[1]);
+  if (argc != 6) {
+    std::cout << "Incorrect usage." << std::endl;
+    exit(1);
   }
 
-//  std::string keys_file_path = "keys.bin";
-//  int num_records = 50000000;
-  std::string keys_file_path = "wiki_ts_200M_uint64";
-  std::string workload_file_path = "wiki_ts_200M_uint64_workload";
-  int num_records = 200000000;
+  int num_second_level_models = atoi(argv[1]);
+  std::string keys_file_path = std::string(argv[2]);
+  std::string test_workload_file_path = std::string(argv[3]);
+  //int num_records = 200000000;
+  int num_records = atoi(argv[4]);
+  //int workload_size = 100000;;
+  int test_workload_size = atoi(argv[5]);
     
   // Read keys from file. Keys are in random order (not sorted).
   auto keys = new K[num_records];
@@ -32,29 +49,22 @@ int main(int argc, char** argv) {
   is.close();
 
   // Read workload
-  auto workload = new V[num_records];
-  std::ifstream is_workload(workload_file_path.c_str(), std::ios::binary | std::ios::in);
-  if (!is_workload.is_open()) {
-    std::cout << "Run `python generate_workflow` to generate workloads" << std::endl;
-    return 0;
-  }
-    
-  is_workload.read(reinterpret_cast<char*>(workload),
-          std::streamsize(num_records * sizeof(V)));
-  is_workload.close();
+  std::vector<K> test_workload = read_workload(test_workload_file_path, test_workload_size);
 
   // Combine loaded keys with randomly generated values
   std::vector<std::pair<K, V>> data(num_records);
+  std::mt19937_64 gen_payload(std::random_device{}());
   for (int i = 0; i < num_records; i++) {
     data[i].first = keys[i];
-    data[i].second = static_cast<V>(workload[i]);
+    data[i].second = static_cast<V>(gen_payload());
   }
   delete[] keys;
-  delete[] workload;
 
   // Build index index
+  /*
   std::cout << "Building learned index with " << num_second_level_models
             << " second level models..." << std::endl;
+            */
   LearnedIndex<K, V> index(data);
   auto build_start_time = std::chrono::high_resolution_clock::now();
   index.build(num_second_level_models);
@@ -64,6 +74,7 @@ int main(int argc, char** argv) {
           .count();
 
   // Run workload using learned index
+  /*
   std::cout << "Running query workload..." << std::endl;
   auto workload_start_time = std::chrono::high_resolution_clock::now();
   V sum = 0;
@@ -83,4 +94,19 @@ int main(int argc, char** argv) {
             << build_time / 1e9
             << " seconds, workload time: " << workload_time / 1e9
             << " seconds, proof of work: " << sum << std::endl;
+  */
+  auto workload_start_time = std::chrono::high_resolution_clock::now();
+  for (K key: test_workload) {
+    const V* payload = index.get_value(key);
+    if (!payload) {
+      exit(1);
+    }
+  }
+  double workload_time =
+      std::chrono::duration_cast<std::chrono::nanoseconds>(
+          std::chrono::high_resolution_clock::now() - workload_start_time)
+          .count();
+  
+  int model_size = sizeof(index);  //bytes
+  std::cout << model_size << "\t" << build_time / 1e9 << "\t" << workload_time / 1e9 << std::endl;
 }
