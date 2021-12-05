@@ -90,5 +90,5 @@ int main(int argc, char** argv) {
           std::chrono::high_resolution_clock::now() - workload_start_time)
           .count();
   
-  std::cout << "NA" << "\t" << "NA" << "\t" << workload_time / 1e9 << std::endl;
+  std::cout << "NA" << "\t" << "NA" << "\t" << workload_time / 1e9 << "\t" << "NA" << std::endl;
 }

@@ -107,7 +107,7 @@ class WLearnedIndex {
 
   // If the key exists, return a pointer to the corresponding value in data_.
   // If the key does not exist, return a nullptr.
-  const V* get_value(K key) const {
+  V* get_value(K key) {
     assert(second_level_models_.size() > 0);
     int root_model_output = root_model_.predict(key);
 
@@ -127,6 +127,12 @@ class WLearnedIndex {
     int predicted_index = second_level_models_[second_level_index].predict(key);
     predicted_index = std::max<int>(predicted_index, 0);
     predicted_index = std::min<int>(predicted_index, data_size - 1);
+
+    if (std::get<0>(data_[predicted_index]) == key) {
+      return &std::get<1>(data_[predicted_index]);
+    } else {
+      last_mile_search_count_ = last_mile_search_count_ + 1;
+    }
       
     int error_bound = second_level_error_bounds_[second_level_index];
     int start_search = predicted_index - error_bound;
@@ -142,6 +148,14 @@ class WLearnedIndex {
         return nullptr;
     }
     return &std::get<1>(data_[pos]);
+  }
+
+  int get_last_mile_search_count() {
+    return last_mile_search_count_;
+  }
+
+  void reset_last_mile_search_count() {
+    last_mile_search_count_ = 0;
   }
 
  private:
@@ -166,4 +180,5 @@ class WLearnedIndex {
   std::vector<WLinearModel<K, V>> second_level_models_;
   // The maximum prediction error for each second-level model.
   std::vector<int> second_level_error_bounds_;
+  int last_mile_search_count_;
 };

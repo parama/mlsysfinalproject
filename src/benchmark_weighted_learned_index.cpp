@@ -110,6 +110,7 @@ int main(int argc, char** argv) {
             << " seconds, workload time: " << workload_time / 1e9
             << " seconds, proof of work: " << sum << std::endl;
   */
+  index.reset_last_mile_search_count();
   auto workload_start_time = std::chrono::high_resolution_clock::now();
   for (K key: test_workload) {
     const V* payload = index.get_value(key);
@@ -121,7 +122,8 @@ int main(int argc, char** argv) {
       std::chrono::duration_cast<std::chrono::nanoseconds>(
           std::chrono::high_resolution_clock::now() - workload_start_time)
           .count();
+  int num_last_mile_search = index.get_last_mile_search_count();
   
   int model_size = sizeof(index);  //bytes
-  std::cout << model_size << "\t" << build_time / 1e9 << "\t" << workload_time / 1e9 << std::endl;
+  std::cout << model_size << "\t" << build_time / 1e9 << "\t" << workload_time / 1e9 << "\t" << num_last_mile_search << std::endl;
 }
