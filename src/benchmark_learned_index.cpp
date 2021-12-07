@@ -5,7 +5,7 @@
 
 #include "learned_index.h"
 
-#define K double
+#define K uint64_t
 #define V int64_t
 
 std::vector<K> read_workload(std::string workload_path, int wl_size) {
