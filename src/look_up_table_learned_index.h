@@ -95,8 +95,8 @@ class LookUpTableLearnedIndex {
           look_up_table_[keys[i]] = positions[i];
         }
       } else {
-        keys_to_train.push_back(keys[i]);
-        positions_to_train.push_back(positions[i]);
+        keys_to_train.push_back(data_[i].first);
+        positions_to_train.push_back(data_[i].second);
       }
     }
 
@@ -120,48 +120,38 @@ class LookUpTableLearnedIndex {
     // right error), here we will only store a single maximum bi-directional
     // error for each second-level model.
       
-    int keys_size = keys_to_train.size();
-    for (int i = 0; i < num_second_level_models; i++) {
-        LinearModel<K> model;
-        second_level_models_.push_back(model);
-        
-        int error = keys_size;
-        second_level_error_bounds_.push_back(error);
-    }
+    std::vector<K> bucket_keys;
+    std::vector<int> bucket_positions;
       
+    int start_pos;
+    int end_pos = 0;  // exclusive
     for (int i = 0; i < num_second_level_models; i++) {
-        int bucket_index = i;
-        std::vector<K> bucket_keys;
-        std::vector<int> bucket_positions;
-        
-        // get the data that belongs to the bucket
-        for (int j = 0; j < keys_size; j++) {
-            int predicted_bucket = root_model_.predict(keys_to_train[j]);
-            // clip
-            predicted_bucket = std::max<int>(predicted_bucket, 0);
-            predicted_bucket = std::min<int>(predicted_bucket, num_second_level_models - 1);
-            if (predicted_bucket == bucket_index) {
-                bucket_keys.push_back(keys_to_train[j]);
-                bucket_positions.push_back(positions_to_train[j]);
-            }
-        }
-       
-        // train the second-level model on subset of data
-        int bucket_size = bucket_keys.size();
-        second_level_models_[bucket_index].train(bucket_keys, bucket_positions);
-        
-        int max_error = 0;
-        for (int j = 0; j < bucket_size; j++) {
-            int predicted_index = second_level_models_[bucket_index].predict(bucket_keys[j]);
-            // clip
-            predicted_index = std::max<int>(predicted_index, 0);
-            predicted_index = std::min<int>(predicted_index, keys_size - 1);
-            int error = std::abs(predicted_index - bucket_positions[j]);
-            if (error > max_error) {
-                max_error = error;
-            }
-        }
-        second_level_error_bounds_[bucket_index] = max_error;
+      start_pos = end_pos;
+      while (end_pos < static_cast<int>(keys_to_train.size()) &&
+             root_model_.predict(keys_to_train[end_pos]) <= i) {
+        end_pos++;
+      }
+      // Edge case
+      if (i == num_second_level_models - 1) {
+        end_pos = static_cast<int>(keys_to_train.size());
+      }
+      bucket_keys.clear();
+      bucket_positions.clear();
+      for (int i = start_pos; i < end_pos; i++) {
+        bucket_keys.push_back(keys_to_train[i]);
+        bucket_positions.push_back(positions_to_train[i]);
+      }
+      LinearModel<K> model;
+      model.train(bucket_keys, bucket_positions);
+      second_level_models_.push_back(model);
+
+      // Compute error bound
+      int max_error = 0;
+      for (int pos = start_pos; pos < end_pos; pos++) {
+        int predicted_pos = model.predict(bucket_keys[pos]);
+        max_error = std::max(max_error, std::abs(pos - predicted_pos));
+      }
+      second_level_error_bounds_.push_back(max_error);
     }
   }
 
@@ -185,35 +175,34 @@ class LookUpTableLearnedIndex {
     // NOTE: to receive full credit, the last-mile search should use the
     // `last_mile_search` method provided below.
       
-    int num_second_level_models = second_level_models_.size();
-    int second_level_index = std::max<int>(root_model_output, 0);
-    second_level_index = std::min<int>(second_level_index, num_second_level_models - 1);
-    
-    int data_size = data_.size();
-    int predicted_index = second_level_models_[second_level_index].predict(key);
-    predicted_index = std::max<int>(predicted_index, 0);
-    predicted_index = std::min<int>(predicted_index, data_size - 1);
-
-    if (data_[predicted_index].first == key) {
-      return &data_[predicted_index].second;
+    int second_level_model_index =
+        std::max(0, std::min(static_cast<int>(second_level_models_.size()) - 1,
+                             root_model_output));
+      
+    const auto& second_level_model =
+          second_level_models_[second_level_model_index];
+        
+    int predicted_position = second_level_model.predict(key);
+        
+    if (data_[predicted_position].first == key) {
+      return &data_[predicted_position].second;
     } else {
       last_mile_search_count_ = last_mile_search_count_ + 1;
     }
-      
-    int error_bound = second_level_error_bounds_[second_level_index];
-    int start_search = predicted_index - error_bound;
-    int end_search = predicted_index + error_bound;
-    //clip
-    start_search = std::max<int>(start_search, 0);
-    end_search = std::max<int>(end_search, 0);
-    start_search = std::min<int>(start_search, data_size);
-    end_search = std::min<int>(end_search, data_size);
-      
-    int pos = last_mile_search(key, start_search, end_search);
-    if (pos == -1) {
-        return nullptr;
+        
+    int error_bound = second_level_error_bounds_[second_level_model_index];
+    int bound_start_pos =
+        std::max(0, std::min(static_cast<int>(data_.size()),
+                             predicted_position - error_bound));
+    int bound_end_pos =
+        std::max(0, std::min(static_cast<int>(data_.size()),
+                             predicted_position + error_bound + 1));
+    int true_position = last_mile_search(key, bound_start_pos, bound_end_pos);
+    if (true_position == -1) {
+      return nullptr;
+    } else {
+      return &(data_[true_position].second);
     }
-    return &data_[pos].second;
   }
 
   int get_last_mile_search_count() {
