@@ -43,7 +43,6 @@ class LookUpTableLearnedIndex {
   void build(int num_second_level_models, int tableSize) {
     assert(num_second_level_models > 0);
     second_level_models_.clear();
-
     // Construct the root model over the entire data.
     // Extract keys from key-value records. In practice, you would want to avoid
     // this because it requires making a redundant temporary copy of all the
@@ -130,13 +129,11 @@ class LookUpTableLearnedIndex {
       // Compute error bound
       int max_error = 0;
       for (int pos = start_pos; pos < end_pos; pos++) {
-        int predicted_pos = model.predict(bucket_keys[pos]);
+        int predicted_pos = model.predict(keys_to_train[pos]);
         max_error = std::max(max_error, std::abs(pos - predicted_pos));
       }
       second_level_error_bounds_.push_back(max_error);
     }
-
-    std::cout << "build complete" << std::endl;
   }
 
   // If the key exists, return a pointer to the corresponding value in data_.
@@ -146,10 +143,8 @@ class LookUpTableLearnedIndex {
 
     // check if the key is inside the look-up table
     if (look_up_table_.find(key) != look_up_table_.end()) {
-      std::cout << "yes" << std::endl;
       return &data_[look_up_table_.at(key)].second;
     }
-    std::cout << "no" << std::endl;
 
     int root_model_output = root_model_.predict(key);
 
