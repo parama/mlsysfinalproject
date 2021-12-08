@@ -11,25 +11,19 @@ def eval_wiki():
     wiki_data_path = "SOSD/data/wiki_ts_200M_uint64"
     wiki_workloads = [
         "workloads/wiki_ts_200M_uint64_workload200000k_alpha1.1",
-        #"workloads/wiki_ts_200M_uint64_workload200000k_alpha1.3",
         "workloads/wiki_ts_200M_uint64_workload200000k_alpha1.5",
-        #"workloads/wiki_ts_200M_uint64_workload200000k_alpha1.7",
         "workloads/wiki_ts_200M_uint64_workload200000k_alpha1.9"
     ]
 
     num_records = 200000000
     workload_size = 200000000
 
-    #num_second_level_models = [10, 50, 100, 200, 500, 1000, 2000]
-    num_second_level_models = [10, 50, 100, 500, 1000]
-    #lookup_table_sizes = [3, 5, 10]
-    # lookup_table_sizes = [100, 200, 300]
-    lookup_table_sizes = [500]
+    num_second_level_models = [100, 1000, 10000, 100000, 1000000]
+    lookup_table_sizes = [1000, 10000]
 
-    # models = ["linear_model", "weighted_linear_model", "look_up_table_linear_model"]
-    models = ["look_up_table_linear_model"]
+    models = ["linear_model", "weighted_linear_model", "look_up_table_linear_model"]
 
-    log_path = "results/wiki_200000k_v2.csv"
+    log_path = "results/wiki_200000k_v3.csv"
     if os.path.isfile(log_path):
         log = open(log_path, "a")
     else:
@@ -91,13 +85,12 @@ def eval_book():
     num_records = 200000000
     workload_size = 200000000
 
-    num_second_level_models = [10, 50, 100, 500, 1000]
-    lookup_table_sizes = [200, 500]
+    num_second_level_models = [100, 1000, 10000, 100000, 1000000]
+    lookup_table_sizes = [1000, 10000]
 
-    # models = ["linear_model", "weighted_linear_model", "look_up_table_linear_model"]
-    models = ["look_up_table_linear_model"]
+    models = ["linear_model", "weighted_linear_model", "look_up_table_linear_model"]
 
-    log_path = "results/books_200000k_v2.csv"
+    log_path = "results/books_200000k_v3.csv"
     if os.path.isfile(log_path):
         log = open(log_path, "a")
     else:
@@ -150,5 +143,5 @@ def eval_book():
 
 
 if __name__ == "__main__":
-    eval_book()
+    eval_wiki()
 
