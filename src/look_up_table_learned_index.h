@@ -17,12 +17,12 @@ class LookUpTableLearnedIndex {
  public:
   typedef std::pair<K, V> record;
 
-  LookUpTableLearnedIndex(std::vector<record> data, std::vector<K> workload) : data_(data), workload_(workload) {
+  LookUpTableLearnedIndex(std::vector<record> data, std::vector<double> weights) : data_(data), weights_(weights) {
     std::sort(data_.begin(), data_.end());
   }
 
   // borrowed from https://stackoverflow.com/questions/1577475/c-sorting-and-keeping-track-of-indexes
-  std::vector<int> sort_indexes(std::vector<int> &v) {
+  std::vector<int> sort_indexes(std::vector<double> &v) {
 
     // initialize original index locations
     std::vector<int> idx(v.size());
@@ -56,48 +56,30 @@ class LookUpTableLearnedIndex {
     std::vector<int> positions(keys.size());
     std::iota(std::begin(positions), std::end(positions), 0);
 
-    // compute weights for each key in the set
-    std::unordered_map<K, int> key_to_position;
-    int key_size = keys.size();
-    int workload_size = workload_.size();
-    for (int i = 0; i < key_size; i++) {
-      if (key_to_position.find(keys[i]) == key_to_position.end()) {
-        key_to_position[keys[i]] = i;
-      }
-    }
-    std::vector<int> weights;
-    for (int i = 0; i < key_size; i++) {
-      weights.push_back(0);
-    }
-    for (int i = 0; i < workload_size; i ++) {
-      weights[key_to_position[workload_[i]]] = weights[key_to_position[workload_[i]]] + 1;      
-    }
-
     // Create a look-up table for the top most frequent keys
-    std::vector<int> sorted_idx = sort_indexes(weights);
-    int idx_size = sorted_idx.size();
-    std::unordered_set<int> idx_to_save;
-    if (tableSize >= idx_size) {
-      tableSize = idx_size;
-    }
-    for (int i = 0; i < tableSize; i++) {
-      idx_to_save.insert(sorted_idx[idx_size - 1 - i]);
+    std::vector<int> sorted_idx = sort_indexes(weights_);
+    look_up_table_.clear();
+    int curr_idx = sorted_idx.size() - 1;
+    size_t table_size_t = static_cast<size_t>(tableSize);
+    while (look_up_table_.size() < table_size_t && curr_idx >= 0) {
+      if (look_up_table_.find(keys[sorted_idx[curr_idx]]) == look_up_table_.end()) {
+        look_up_table_[keys[sorted_idx[curr_idx]]] = positions[sorted_idx[curr_idx]];
+      }
+      curr_idx -= 1;
     }
 
     std::vector<K> keys_to_train;
     std::vector<int> positions_to_train;
-    look_up_table_.clear();
     int all_keys_size = keys.size();
     for (int i = 0; i < all_keys_size; i ++) {
-      if (idx_to_save.find(i) != idx_to_save.end()) {
-        // add to look-up table
-        if (look_up_table_.find(keys[i]) == look_up_table_.end()){
-          look_up_table_[keys[i]] = positions[i];
-        }
-      } else {
-        keys_to_train.push_back(data_[i].first);
-        positions_to_train.push_back(data_[i].second);
+      if (look_up_table_.find(keys[i]) == look_up_table_.end())  {
+        keys_to_train.push_back(keys[i]);
+        positions_to_train.push_back(positions[i]);
       }
+    }
+
+    if (keys_to_train.size() == 0) {
+      return;
     }
 
     
@@ -153,6 +135,8 @@ class LookUpTableLearnedIndex {
       }
       second_level_error_bounds_.push_back(max_error);
     }
+
+    std::cout << "build complete" << std::endl;
   }
 
   // If the key exists, return a pointer to the corresponding value in data_.
@@ -162,8 +146,10 @@ class LookUpTableLearnedIndex {
 
     // check if the key is inside the look-up table
     if (look_up_table_.find(key) != look_up_table_.end()) {
+      std::cout << "yes" << std::endl;
       return &data_[look_up_table_.at(key)].second;
     }
+    std::cout << "no" << std::endl;
 
     int root_model_output = root_model_.predict(key);
 
@@ -175,34 +161,35 @@ class LookUpTableLearnedIndex {
     // NOTE: to receive full credit, the last-mile search should use the
     // `last_mile_search` method provided below.
       
-    int second_level_model_index =
-        std::max(0, std::min(static_cast<int>(second_level_models_.size()) - 1,
-                             root_model_output));
-      
-    const auto& second_level_model =
-          second_level_models_[second_level_model_index];
-        
-    int predicted_position = second_level_model.predict(key);
-        
-    if (data_[predicted_position].first == key) {
-      return &data_[predicted_position].second;
+    int num_second_level_models = second_level_models_.size();
+    int second_level_index = std::max<int>(root_model_output, 0);
+    second_level_index = std::min<int>(second_level_index, num_second_level_models - 1);
+    
+    int data_size = data_.size();
+    int predicted_index = second_level_models_[second_level_index].predict(key);
+    predicted_index = std::max<int>(predicted_index, 0);
+    predicted_index = std::min<int>(predicted_index, data_size - 1);
+
+    if (data_[predicted_index].first == key) {
+      return &data_[predicted_index].second;
     } else {
       last_mile_search_count_ = last_mile_search_count_ + 1;
     }
-        
-    int error_bound = second_level_error_bounds_[second_level_model_index];
-    int bound_start_pos =
-        std::max(0, std::min(static_cast<int>(data_.size()),
-                             predicted_position - error_bound));
-    int bound_end_pos =
-        std::max(0, std::min(static_cast<int>(data_.size()),
-                             predicted_position + error_bound + 1));
-    int true_position = last_mile_search(key, bound_start_pos, bound_end_pos);
-    if (true_position == -1) {
-      return nullptr;
-    } else {
-      return &(data_[true_position].second);
+      
+    int error_bound = second_level_error_bounds_[second_level_index];
+    int start_search = predicted_index - error_bound;
+    int end_search = predicted_index + error_bound;
+    //clip
+    start_search = std::max<int>(start_search, 0);
+    end_search = std::max<int>(end_search, 0);
+    start_search = std::min<int>(start_search, data_size);
+    end_search = std::min<int>(end_search, data_size);
+      
+    int pos = last_mile_search(key, start_search, end_search);
+    if (pos == -1) {
+        return nullptr;
     }
+    return &data_[pos].second;
   }
 
   int get_last_mile_search_count() {
@@ -232,7 +219,7 @@ class LookUpTableLearnedIndex {
 
   std::unordered_map<K, int>  look_up_table_;
   std::vector<record> data_;
-  std::vector<K> workload_;
+  std::vector<double> weights_;
   LinearModel<K> root_model_;
   std::vector<LinearModel<K>> second_level_models_;
   // The maximum prediction error for each second-level model.

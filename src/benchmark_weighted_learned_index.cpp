@@ -50,7 +50,7 @@ int main(int argc, char** argv) {
   is.close();
 
   // Read weights generated from workload
-  auto weights = new K[num_records];
+  auto weights = new double[num_records];
   std::ifstream is_weight(weights_file_path.c_str(), std::ios::binary | std::ios::in);
   if (!is_weight.is_open()) {
     std::cout << "Run `python generate_workflow` then `convert_workload_to_weights` to generate weights" << std::endl;
@@ -58,11 +58,11 @@ int main(int argc, char** argv) {
   }
         
   is_weight.read(reinterpret_cast<char*>(weights),
-          std::streamsize(num_records * sizeof(K)));
+          std::streamsize(num_records * sizeof(double)));
   is_weight.close();
     
   // Combine loaded keys with randomly generated values
-  std::vector<std::tuple<K, V, K>> data(num_records);
+  std::vector<std::tuple<K, V, double>> data(num_records);
   std::mt19937_64 gen_payload(std::random_device{}());
   for (int i = 0; i < num_records; i++) {
     std::get<0>(data[i]) = keys[i];

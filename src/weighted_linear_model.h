@@ -26,16 +26,18 @@ class WLinearModel {
   // desired model outputs (e.g., for input `keys[0]`, the desired output is
   // `positions[0]`).
   void train(const std::vector<K>& keys, const std::vector<int>& positions,
-             const std::vector<V>& workloads) {
+             const std::vector<double>& workloads) {
     assert(keys.size() == positions.size());
     assert(keys.size() == workloads.size());
       
     double n = keys.size(); // number elements
     double tot_workload = std::accumulate(workloads.begin(), workloads.end(), 0.0);
+    /*
     std::vector<double> weights;
     for (int i = 0; i < n; i++) {
         weights.push_back(workloads[i]);
     }
+    */
     
     // keys to search for in the index (x)
     // positions to retrieve (y)
@@ -44,8 +46,8 @@ class WLinearModel {
     double y_mean = 0;
       
     for (int i = 0; i < n; i++) {
-        x_mean += weights[i] * keys[i];
-        y_mean += weights[i] * positions[i];
+        x_mean += workloads[i] * keys[i];
+        y_mean += workloads[i] * positions[i];
     }
       
     x_mean = x_mean / tot_workload;
@@ -61,8 +63,8 @@ class WLinearModel {
     double denominator = 0;
       
     for (int i = 0; i < n; i++) {
-        numerator += weights[i] * (keys[i] - x_mean) * (positions[i] - y_mean);
-        denominator += weights[i] * pow(keys[i] - x_mean, 2);
+        numerator += workloads[i] * (keys[i] - x_mean) * (positions[i] - y_mean);
+        denominator += workloads[i] * pow(keys[i] - x_mean, 2);
     }
 
     if (denominator == 0) {

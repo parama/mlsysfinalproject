@@ -12,7 +12,7 @@ class WLearnedIndex {
                 "Learned index key type must be numeric.");
 
  public:
-  typedef std::tuple<K, V, K> record;
+  typedef std::tuple<K, V, double> record;
 
   WLearnedIndex(std::vector<record> data) : data_(data) {
     std::sort(data_.begin(), data_.end());
@@ -32,7 +32,7 @@ class WLearnedIndex {
     std::transform(std::begin(data_), std::end(data_), std::back_inserter(keys),
                    [](auto const& tuple) { return std::get<0>(tuple); });
       
-    std::vector<V> workload;
+    std::vector<double> workload;
     std::transform(std::begin(data_), std::end(data_), std::back_inserter(workload),
                    [](auto const& tuple) { return std::get<2>(tuple); });
       
@@ -108,34 +108,35 @@ class WLearnedIndex {
     // NOTE: to receive full credit, the last-mile search should use the
     // `last_mile_search` method provided below.
       
-    int second_level_model_index =
-        std::max(0, std::min(static_cast<int>(second_level_models_.size()) - 1,
-                             root_model_output));
-      
-    const auto& second_level_model =
-          second_level_models_[second_level_model_index];
-        
-    int predicted_position = second_level_model.predict(key);
-        
-    if (std::get<0>(data_[predicted_position]) == key) {
-      return &std::get<1>(data_[predicted_position]);
+    int num_second_level_models = second_level_models_.size();
+    int second_level_index = std::max<int>(root_model_output, 0);
+    second_level_index = std::min<int>(second_level_index, num_second_level_models - 1);
+    
+    int data_size = data_.size();
+    int predicted_index = second_level_models_[second_level_index].predict(key);
+    predicted_index = std::max<int>(predicted_index, 0);
+    predicted_index = std::min<int>(predicted_index, data_size - 1);
+
+    if (std::get<0>(data_[predicted_index]) == key) {
+      return &std::get<1>(data_[predicted_index]);
     } else {
       last_mile_search_count_ = last_mile_search_count_ + 1;
     }
-        
-    int error_bound = second_level_error_bounds_[second_level_model_index];
-    int bound_start_pos =
-        std::max(0, std::min(static_cast<int>(data_.size()),
-                             predicted_position - error_bound));
-    int bound_end_pos =
-        std::max(0, std::min(static_cast<int>(data_.size()),
-                             predicted_position + error_bound + 1));
-    int true_position = last_mile_search(key, bound_start_pos, bound_end_pos);
-    if (true_position == -1) {
-      return nullptr;
-    } else {
-      return &std::get<1>(data_[true_position]);
+      
+    int error_bound = second_level_error_bounds_[second_level_index];
+    int start_search = predicted_index - error_bound;
+    int end_search = predicted_index + error_bound;
+    //clip
+    start_search = std::max<int>(start_search, 0);
+    end_search = std::max<int>(end_search, 0);
+    start_search = std::min<int>(start_search, data_size);
+    end_search = std::min<int>(end_search, data_size);
+      
+    int pos = last_mile_search(key, start_search, end_search);
+    if (pos == -1) {
+        return nullptr;
     }
+    return &std::get<1>(data_[pos]);
   }
 
   int get_last_mile_search_count() {

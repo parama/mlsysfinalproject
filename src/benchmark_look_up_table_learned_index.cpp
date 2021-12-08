@@ -23,8 +23,23 @@ std::vector<K> read_workload(std::string workload_path, int wl_size) {
   return ret_workload;
 }
 
+std::vector<double> read_weights(std::string weight_path, int num_records) {
+  auto weight_data = new double[num_records];
+  std::ifstream is_weight(weight_path.c_str(), std::ios::binary | std::ios::in);
+    
+  is_weight.read(reinterpret_cast<char*>(weight_data),
+          std::streamsize(num_records * sizeof(double)));
+  is_weight.close();
+
+  std::vector<double> ret_weight(num_records);
+  for (int i = 0; i < num_records; i++) {
+    ret_weight[i] = weight_data[i];
+  }
+  return ret_weight;
+}
+
 int main(int argc, char** argv) {
-  if (argc != 9) {
+  if (argc != 8) {
     std::cout << "Incorrect usage." << std::endl;
     exit(1);
   }
@@ -32,13 +47,12 @@ int main(int argc, char** argv) {
   int num_second_level_models = atoi(argv[1]);
   int tableSize = atoi(argv[2]);
   std::string keys_file_path = std::string(argv[3]);
-  std::string workload_file_path = std::string(argv[4]);
+  std::string weights_file_path = std::string(argv[4]);
   std::string test_workload_file_path = std::string(argv[5]);
   //int num_records = 200000000;
   int num_records = atoi(argv[6]);
   //int workload_size = 100000;;
-  int workload_size = atoi(argv[7]);
-  int test_workload_size = atoi(argv[8]);
+  int test_workload_size = atoi(argv[7]);
     
   // Read keys from file. Keys are in random order (not sorted).
   auto keys = new K[num_records];
@@ -59,9 +73,11 @@ int main(int argc, char** argv) {
     data[i].second = static_cast<V>(gen_payload());
   }
   delete[] keys;
-    
+  
+  // Read weights
+  std::vector<double> weights = read_weights(weights_file_path, num_records);
+
   // Read workloads
-  std::vector<K> workload = read_workload(workload_file_path, workload_size);
   std::vector<K> test_workload = read_workload(test_workload_file_path, test_workload_size);
     
   // Build index index
@@ -69,7 +85,8 @@ int main(int argc, char** argv) {
   std::cout << "Building learned index with " << num_second_level_models
             << " second level models..." << std::endl;
   */
-  LookUpTableLearnedIndex<K, V> index(data, workload);
+
+  LookUpTableLearnedIndex<K, V> index(data, weights);
   auto build_start_time = std::chrono::high_resolution_clock::now();
   index.build(num_second_level_models, tableSize);
   double build_time =

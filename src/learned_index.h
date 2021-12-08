@@ -100,34 +100,35 @@ class LearnedIndex {
     // NOTE: to receive full credit, the last-mile search should use the
     // `last_mile_search` method provided below.
       
-    int second_level_model_index =
-        std::max(0, std::min(static_cast<int>(second_level_models_.size()) - 1,
-                             root_model_output));
+    int num_second_level_models = second_level_models_.size();
+    int second_level_index = std::max<int>(root_model_output, 0);
+    second_level_index = std::min<int>(second_level_index, num_second_level_models - 1);
     
-    const auto& second_level_model =
-          second_level_models_[second_level_model_index];
-      
-    int predicted_position = second_level_model.predict(key);
-      
-    if (data_[predicted_position].first == key) {
-      return &data_[predicted_position].second;
+    int data_size = data_.size();
+    int predicted_index = second_level_models_[second_level_index].predict(key);
+    predicted_index = std::max<int>(predicted_index, 0);
+    predicted_index = std::min<int>(predicted_index, data_size - 1);
+
+    if (data_[predicted_index].first == key) {
+      return &data_[predicted_index].second;
     } else {
       last_mile_search_count_ = last_mile_search_count_ + 1;
     }
       
-    int error_bound = second_level_error_bounds_[second_level_model_index];
-    int bound_start_pos =
-        std::max(0, std::min(static_cast<int>(data_.size()),
-                             predicted_position - error_bound));
-    int bound_end_pos =
-        std::max(0, std::min(static_cast<int>(data_.size()),
-                             predicted_position + error_bound + 1));
-    int true_position = last_mile_search(key, bound_start_pos, bound_end_pos);
-    if (true_position == -1) {
-      return nullptr;
-    } else {
-      return &(data_[true_position].second);
+    int error_bound = second_level_error_bounds_[second_level_index];
+    int start_search = predicted_index - error_bound;
+    int end_search = predicted_index + error_bound;
+    //clip
+    start_search = std::max<int>(start_search, 0);
+    end_search = std::max<int>(end_search, 0);
+    start_search = std::min<int>(start_search, data_size);
+    end_search = std::min<int>(end_search, data_size);
+      
+    int pos = last_mile_search(key, start_search, end_search);
+    if (pos == -1) {
+        return nullptr;
     }
+    return &data_[pos].second;
   }
 
   int get_last_mile_search_count() {
